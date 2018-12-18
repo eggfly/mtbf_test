@@ -8,9 +8,6 @@ import urllib2
 
 __debug = False
 
-
-
-
 def list_devices(verbose=True):
     lines = os.popen("adb devices").readlines()
     if len(lines) == 0 or not lines[0].startswith("List of devices attached"):
@@ -328,11 +325,14 @@ def download_setcoredump(url):
 
 if __name__ == "__main__":
 
-    version = 0.13
+    # WARNING:
+    # DO NOT RENAME THIS VARIABLE OR MANUALLY
+    # UPDATE THE VALUE, IT SHALL BE UPDATED BY release.sh AUTOMATICALLY
+    __script_version = 0.14
 
     argv = sys.argv
     argc = len(argv)
-    print "script version: " + str(version)
+    print "script version: " + str(__script_version)
 
     # check if there is a newer version
     print("checking for new version...")
@@ -346,7 +346,7 @@ if __name__ == "__main__":
             fin = open(new_version_txt, 'r')
             new_version = fin.readline().strip().split("version=")[1]
             new_version_hash = fin.readline().strip().split("md5=")[1]
-            if float(new_version) > version and download_file(new_script_uri, new_version_script, new_version_hash):
+            if float(new_version) > __script_version and download_file(new_script_uri, new_version_script, new_version_hash):
                 os.system("python " + os.path.abspath(new_version_script))
                 current_script_path = (__file__)
                 print("upgrade self")
