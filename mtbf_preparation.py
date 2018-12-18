@@ -323,18 +323,7 @@ def download_setcoredump(url):
     return True
 
 
-if __name__ == "__main__":
-
-    # WARNING:
-    # DO NOT RENAME THIS VARIABLE OR MANUALLY
-    # UPDATE THE VALUE, IT SHALL BE UPDATED BY release.sh AUTOMATICALLY
-    __script_version = 0.15
-
-    argv = sys.argv
-    argc = len(argv)
-    print "script version: " + str(__script_version)
-
-    # check if there is a newer version
+def check_upgrade_and_execute_new_version():
     print("checking for new version...")
     version_uri = 'https://raw.githubusercontent.com/wwm0609/mtbf_test/master/version.txt'
     new_script_uri = 'https://raw.githubusercontent.com/wwm0609/mtbf_test/master/mtbf_preparation.py'
@@ -346,8 +335,10 @@ if __name__ == "__main__":
             fin = open(new_version_txt, 'r')
             new_version = fin.readline().strip().split("version=")[1]
             new_version_hash = fin.readline().strip().split("md5=")[1]
-            if float(new_version) > __script_version and download_file(new_script_uri, new_version_script, new_version_hash):
-                os.system("python " + os.path.abspath(new_version_script))
+            if float(new_version) > __script_version and download_file(new_script_uri, new_version_script,
+                                                                       new_version_hash):
+                print("new version available, executing it now")
+                os.system("python " + os.path.abspath(new_version_script) + " --no-upgrade")
                 current_script_path = (__file__)
                 print("upgrade self")
                 os.rename(new_version_script, current_script_path)
@@ -357,9 +348,28 @@ if __name__ == "__main__":
         except Exception as e:
             print("failed to parse " + new_version_txt, e)
 
+
+if __name__ == "__main__":
+    # WARNING:
+    # DO NOT RENAME THIS VARIABLE OR MANUALLY
+    # UPDATE THE VALUE, IT SHALL BE UPDATED BY release.sh AUTOMATICALLY
+    __script_version = 0.15
+
+    argv = sys.argv
+    argc = len(argv)
+    print("script version: " + str(__script_version))
+
+    # check if there is a newer version
+    no_upgrade = False
+    for arg in sys.argv:
+        if arg == '--no-upgrade':
+            no_upgrade = True
+    if not no_upgrade:
+        check_upgrade_and_execute_new_version()
+
     # show usage
     if argc == 2 and argv[1].startswith("--help"):
-        print "usage:"
+        print("usage:")
         print(
             "--device=[serial_no] : run preparation on manually picked device, if not specified will run on each connected device")
         print("--signaltrace : enable signal trace")
