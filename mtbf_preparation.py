@@ -1,14 +1,13 @@
 #!/usr/bin/python -tt
 # -*- coding: utf-8 -*-
-from datetime import datetime
-import sys
+import hashlib
 import os
-import subprocess
+import sys
 import time as tt
 import urllib2
-import hashlib
 
 __debug = False
+version = 0.13
 
 
 def list_devices(verbose=True):
@@ -149,6 +148,8 @@ def is_system_server_restarted(device=''):
 
 
 def md5_matches(file, expect_md5):
+    if not os.path.isfile(file):
+        return False
     md5 = MD5(file)
     matched = md5 == expect_md5
     if not matched:
@@ -181,7 +182,9 @@ def mtbf_preparation(selected_device, enable_signal_trace):
         text = adb.run_cmd('disable-verity', True).strip()
         text = adb.run_cmd('disable-verity', True).strip()
         verity_disabled = False
-        if len(text) > 0 and (text.startswith("Verity already disabled on /system") or text.startswith("verity is already disabled")):
+        if len(text) > 0 and (
+                    text.startswith("Verity already disabled on /system") or text.startswith(
+                    "verity is already disabled")):
             verity_disabled = True
         if not verity_disabled:
             print("disabled dm-verity, rebooting now")
@@ -229,31 +232,13 @@ def mtbf_preparation(selected_device, enable_signal_trace):
     adb.run_cmd("root && echo running adb as root")
 
     # first check if setcoredump file exists, if not download it
-    if not os.path.isfile("./setcoredump") or not md5_matches(os.path.abspath("./setcoredump"),
-                                                              'a031555070d0385d12318fc2563aaa33'):
-        # try download it firstly
-        open_share_file_url = "https://drive.google.com/uc?authuser=0&id=1TQBCge48rCaQW-APCT_mV7T3o54NCSL-&export=download"
-        print("downloading setcoredump file...")
-        web = urllib2.urlopen(open_share_file_url)
-        outfile = open('./setcoredump', 'wb')
-        outfile.write(web.read())
-        outfile.close()
-        web.close()
-        if os.path.isfile("./setcoredump") and md5_matches(os.path.abspath("./setcoredump"),
-                                                           'a031555070d0385d12318fc2563aaa33'):
-            print("downloaded setcoredump file")
-        else:
-            print("failed to download setcoredump file from my google drive")
-            raise Exception(
-                "setcoredump not exist, you can download it from: https://wiki.n.miui.com/download/attachments/67175775/setcoredump?version=2&modificationDate=1536919492000&api=v2, then put it into " + os.path.abspath(
-                    "./") + "/")
-
+    download_setcoredump_with_retry()
     # 1. dump heap profile on system_server OOM, fd leads
     if adb.run_cmd('shell getprop ro.miui.dumpheap', True).strip() == '1':
         print("dumpheap already enabled")
     else:
         adb.run_cmd("shell setprop ro.miui.dumpheap 1 && echo 'dumpheap on system_server OOM enabled'")
-    #ro.miui.mtbftest
+    # ro.miui.mtbftest
     if adb.run_cmd('shell getprop ro.miui.mtbftest', True).strip() == '1':
         print("mtbftest already enabled")
     else:
@@ -296,18 +281,80 @@ def mtbf_preparation(selected_device, enable_signal_trace):
     # push a shell script onto the device and execute it in background to keep persist logs
     # todo
 
-version = 0.12
+
+def download_setcoredump_with_retry():
+    retry_count = 2
+    while retry_count > 0:
+        retry_count -= 1
+        open_share_file_url = "https://drive.google.com/uc?authuser=0&id=1TQBCge48rCaQW-APCT_mV7T3o54NCSL-&export=download"
+        if download_setcoredump(open_share_file_url):
+            return
+        open_share_file_url = "https://raw.githubusercontent.com/wwm0609/mtbf_test/master/setcoredump"
+        if download_setcoredump(open_share_file_url):
+            return
+    print(
+        "setcoredump not exist, you can download it from: https://wiki.n.miui.com/download/attachments/67175775/setcoredump?version=2&modificationDate=1536919492000&api=v2, then put it into " + os.path.abspath(
+            "./") + "/")
+
+
+def download_file(url, out, hash=''):
+    try:
+        web = urllib2.urlopen(url)
+        outfile = open(os.path.abspath(out), 'wb')
+        outfile.write(web.read())
+        outfile.close()
+        web.close()
+        if len(hash) > 0:
+            return md5_matches(out, hash)
+        return True
+    except Exception as e:
+        print("failed to download: " + url + " to " + out, e)
+    return False
+
+
+def download_setcoredump(url):
+    expected_hash = 'a031555070d0385d12318fc2563aaa33'
+    if not md5_matches(os.path.abspath("./setcoredump"), expected_hash):
+        # try download it firstly
+        print("downloading setcoredump file...")
+        if download_file(url, './setcoredump', expected_hash):
+            print("downloaded setcoredump file")
+            return True
+        else:
+            print("failed to download setcoredump file from " + url)
+    return True
+
 
 if __name__ == "__main__":
     argv = sys.argv
     argc = len(argv)
-
+    global version
     print "script version: " + str(version)
+
+    # check if there is a newer version
+    version_uri = 'https://raw.githubusercontent.com/wwm0609/mtbf_test/master/version.txt'
+    new_script_uri = 'https://raw.githubusercontent.com/wwm0609/mtbf_test/master/mtbf_preparation.py'
+    new_version_txt = "./new_mtbf_preparation_version.txt"
+    new_version_script = "./mtbf_preparation_latest.py"
+    download_file(version_uri, new_version_txt)
+    if os.path.isfile("./new_mtbf_preparation_version.txt"):
+        try:
+            fin = open(new_version_txt, 'r')
+            new_version = fin.readline().strip().split("version=")[1]
+            new_version_hash = fin.readline().strip().split("md5=")[1]
+            if float(new_version) > version and download_file(new_script_uri, new_version_script, new_version_hash):
+                os.system("python " + os.path.abspath(new_version_script))
+                current_script_path = (__file__)
+                os.rename(new_version_script, current_script_path)
+                os._exit(0)
+        except Exception as e:
+            print("failed to parse " + new_version_txt, e)
 
     # show usage
     if argc == 2 and argv[1].startswith("--help"):
         print "usage:"
-        print("--device=[serial_no] : run preparation on manually picked device, if not specified will run on each connected device")
+        print(
+            "--device=[serial_no] : run preparation on manually picked device, if not specified will run on each connected device")
         print("--signaltrace : enable signal trace")
     else:
         idx = 0
