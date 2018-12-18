@@ -1,0 +1,347 @@
+#!/usr/bin/python -tt
+# -*- coding: utf-8 -*-
+from datetime import datetime
+import sys
+import os
+import subprocess
+import time as tt
+import urllib2
+import hashlib
+
+__debug = False
+
+
+def list_devices(verbose=True):
+    lines = os.popen("adb devices").readlines()
+    if len(lines) == 0 or not lines[0].startswith("List of devices attached"):
+        # print the error
+        if verbose:
+            print(lines)
+        return dict()
+
+    devices_dict = dict()
+    # ignore head string 'list of devices attached'
+    del lines[0]
+
+    for line in lines:
+        line = line.strip()
+        if len(line) == 0:
+            continue
+
+        device_state = line.split()  # split by white space, e.g. \t space,  equal to \\s+ in java
+        length = len(device_state)
+        if length == 2:
+            state = device_state[1].strip()
+            devices_dict[device_state[0].strip()] = state
+            if state == "device":
+                if verbose:
+                    print(get_device_info(device_state[0].strip()))
+        else:
+            print("Error occurred while splitting： %s", line)
+    return devices_dict
+
+
+def get_device_info(serial):
+    adb = Adb(serial)
+    os.system("adb -s " + serial + " wait-for-device")
+    android_version = adb.run_cmd("shell getprop ro.build.version.release", True).strip()
+    fingerprint = adb.run_cmd("shell getprop ro.build.fingerprint", True).strip()
+    device_name = adb.run_cmd("shell getprop ro.product.model", True).strip()
+    device_model = adb.run_cmd("shell getprop ro.build.product", True).strip()
+    brand = adb.run_cmd("shell getprop ro.product.brand", True).strip()
+    cpu_code_name = adb.run_cmd("shell getprop ro.board.platform", True).strip()
+    lines = adb.run_cmd("shell 'cat /proc/cpuinfo'", True).strip()
+    cpu_core_count = lines.count("processor")
+    # grep MemTotal: | awk '{print int($2/1024.0/1024.0 + 0.5)}'
+    lines = adb.run_cmd("shell cat proc/meminfo", True, True)
+    memory = 0
+    for line in lines:
+        line = line.strip()
+        if line.startswith("MemTotal:"):
+            memStr = line.split()[1]
+            if len(memStr) > 0:
+                memory = float(memStr) / 1024 / 1024
+            break
+    device = DeviceInfo()
+    device.android_version = android_version.decode()
+    device.brand = brand.decode()
+    device.name = device_name.decode()
+    device.model = device_model.decode()
+    device.fingerprint = fingerprint.decode()
+    device.cpu = cpu_code_name.decode()
+    device.core_count = cpu_core_count
+    device.memory = round(memory, 1)
+    device.serial_no = adb.run_cmd("shell getprop ro.serialno", True).strip()
+    device.third_app_count = get_installed_app_count(serial, False)
+    device.system_app_count = get_installed_app_count(serial, True)
+    return device
+
+
+def sleep_ignore_error(seconds):
+    try:
+        tt.sleep(seconds)
+    except BaseException as e:
+        print(e)
+
+
+class DeviceInfo:
+    android_version = ""
+    name = ""
+    model = ""
+    brand = ""
+    cpu = ""
+    core_count = 0
+    memory = 0
+    serial_no = ""
+    third_app_count = 0
+    system_app_count = 0
+    fingerprint = ""
+
+    def __str__(self):
+        return "brand:" + self.brand + " name:" + self.name + " model:" + self.model + " serial:" + self.serial_no.decode() \
+               + " android:" + self.android_version + " cpu:" + self.cpu + " cores:" \
+               + str(self.core_count) + " memory:" + str(self.memory) + "Gb" + " system_app_count:" \
+               + str(self.system_app_count) \
+               + " third_app_count:" + str(self.third_app_count)
+
+
+def get_installed_app_count(serial, system):
+    cmd = "shell pm list package "
+    if system:
+        cmd += '-s'
+    else:
+        cmd += '-3'
+    adb = Adb(serial)
+    out = adb.run_cmd(cmd, True, True)
+    return len(out)
+
+
+class Adb:
+    _device = ""
+    __debug = False
+
+    def __init__(self, serial):
+        self._device = serial
+
+    def run_cmd(self, cmd, return_output=False, output_as_lines=False):
+        device = ' -s ' + self._device
+        cmdline = "adb" + device + " " + cmd
+        if self.__debug:
+            print("Debug: executing '" + cmdline + "'")
+        if return_output:
+            if output_as_lines:
+                return os.popen(cmdline).readlines()
+            else:
+                return os.popen(cmdline).read()
+        else:
+            os.system(cmdline)
+
+
+def is_system_server_restarted(device=''):
+    adb = Adb(device)
+    ret = adb.run_cmd("shell getprop sys.miui.runtime.reboot", True)
+    ret = ret.strip()
+    try:
+        return int(ret) > 0
+    except Exception as e:
+        print("is_system_server_restarted:", e)
+        return False
+
+
+def md5_matches(file, expect_md5):
+    md5 = MD5(file)
+    matched = md5 == expect_md5
+    if not matched:
+        print("Warning: md5 of " + file + " is " + md5 + " which does not match expected value: " + expect_md5)
+    return matched
+
+
+def MD5(file):
+    md5_value = hashlib.md5()
+    file = open(file, "rb")
+    while True:
+        data = file.read(2048)  # read 2kb each time to avoid OOM
+        if not data:
+            break
+        md5_value.update(data)
+    file.close()
+    return md5_value.hexdigest()
+
+
+def mtbf_preparation(selected_device, enable_signal_trace):
+    # dump kernel traces
+    # trigger_sysrq = False
+
+    print("\n\n>>>>>running preparation steps on device[" + selected_device + "]...<<<<<")
+
+    # 0. replace certain libs
+    adb = Adb(selected_device)
+    if os.path.isfile("./replace_native_libs.config"):
+        adb.run_cmd('root')
+        text = adb.run_cmd('disable-verity', True).strip()
+        text = adb.run_cmd('disable-verity', True).strip()
+        verity_disabled = False
+        if len(text) > 0 and (text.startswith("Verity already disabled on /system") or text.startswith("verity is already disabled")):
+            verity_disabled = True
+        if not verity_disabled:
+            print("disabled dm-verity, rebooting now")
+            adb.run_cmd('reboot')
+            adb.run_cmd('wait-for-device')
+        adb.run_cmd('root')
+        adb.run_cmd('disable-verity')
+        adb.run_cmd('remount')
+        print('replace native libs: ')
+        config_file = './replace_native_libs.config'
+        replace_any = False
+        with open(config_file, 'r') as fin:
+            lines = fin.readlines()
+            lineNo = 0
+            for line in lines:
+                lineNo += 1
+                line = line.strip()
+                if len(line) == 0 or line.startswith("#"):
+                    continue
+                mapping = line.split()
+                if len(mapping) != 2:
+                    raise Exception(
+                        "Illegal mapping at line " + str(lineNo) + " in " + os.path.abspath(config_file) + " : " + line)
+
+                print("push " + mapping[0] + " to " + mapping[1])
+                adb.run_cmd('push ' + mapping[0] + ' ' + mapping[1])
+                replace_any = True
+        if replace_any:
+            print('reboot device to take effect...')
+            adb.run_cmd('reboot')
+            print('wait for device...')
+            adb.run_cmd('wait-for-device')
+            try_count = 100
+            while try_count > 0:
+                out = adb.run_cmd("shell getprop sys.boot_completed", True).strip()
+                if out == '1':
+                    break
+                try_count -= 1
+                print("wait for device to be fully online")
+                sleep_ignore_error(1)
+            if try_count == 0:
+                # timeout
+                raise Exception("device didn't finish booting in " + str(try_count) + " sec, please check its state!")
+
+    adb.run_cmd("root && echo running adb as root")
+
+    # first check if setcoredump file exists, if not download it
+    if not os.path.isfile("./setcoredump") or not md5_matches(os.path.abspath("./setcoredump"),
+                                                              'a031555070d0385d12318fc2563aaa33'):
+        # try download it firstly
+        open_share_file_url = "https://drive.google.com/uc?authuser=0&id=1TQBCge48rCaQW-APCT_mV7T3o54NCSL-&export=download"
+        print("downloading setcoredump file...")
+        web = urllib2.urlopen(open_share_file_url)
+        outfile = open('./setcoredump', 'wb')
+        outfile.write(web.read())
+        outfile.close()
+        web.close()
+        if os.path.isfile("./setcoredump") and md5_matches(os.path.abspath("./setcoredump"),
+                                                           'a031555070d0385d12318fc2563aaa33'):
+            print("downloaded setcoredump file")
+        else:
+            print("failed to download setcoredump file from my google drive")
+            raise Exception(
+                "setcoredump not exist, you can download it from: https://wiki.n.miui.com/download/attachments/67175775/setcoredump?version=2&modificationDate=1536919492000&api=v2, then put it into " + os.path.abspath(
+                    "./") + "/")
+
+    # 1. dump heap profile on system_server OOM, fd leads
+    if adb.run_cmd('shell getprop ro.miui.dumpheap', True).strip() == '1':
+        print("dumpheap already enabled")
+    else:
+        adb.run_cmd("shell setprop ro.miui.dumpheap 1 && echo 'dumpheap on system_server OOM enabled'")
+    #ro.miui.mtbftest
+    if adb.run_cmd('shell getprop ro.miui.mtbftest', True).strip() == '1':
+        print("mtbftest already enabled")
+    else:
+        adb.run_cmd("shell setprop ro.miui.mtbftest 1 && echo 'mtbftest enabled'")
+
+    # 2. dump core file on native crash
+    print("copy ./setcoredump onto /data/local/tmp/setcoredump")
+    adb.run_cmd('push ./setcoredump /data/local/tmp/setcoredump')
+    adb.run_cmd('shell chmod +x /data/local/tmp/setcoredump')
+
+    ss_pid_str = adb.run_cmd("shell pidof system_server", True).strip()
+    if len(ss_pid_str) == 0:
+        raise Exception("shell system_server not found?")
+
+    sf_pid_str = adb.run_cmd("shell pidof surfaceflinger", True).strip()
+    if len(sf_pid_str) == 0:
+        raise Exception("surfaceflinger not found?")
+    adb.run_cmd(
+        'shell /data/local/tmp/setcoredump -f -p ' + ss_pid_str + " && echo 'core dump on surfaceflinger enabled'")
+    adb.run_cmd('shell /data/local/tmp/setcoredump -p ' + sf_pid_str + " && echo 'core dump on surfaceflinger enabled'")
+
+    # 3. increase logd buffer size and adjust default limit level
+    adb.run_cmd("shell setprop persist.logd.limit Debug && echo 'logd limit level adjusted to Debug'")
+    adb.run_cmd('shell setprop persist.logd.size 16M && echo "logd buffer size increased to 16Mb"')
+    adb.run_cmd('shell setprop ctl.start logd-reinit && echo logd reinitialized')
+
+    if enable_signal_trace:
+        print("enable signal trace now...")
+        adb.run_cmd("shell 'echo 1 > /sys/kernel/debug/tracing/events/signal/enable'")
+        adb.run_cmd(
+            "shell 'echo /sys/kernel/debug/tracing/events/signal/enable: && cat /sys/kernel/debug/tracing/events/signal/enable'")
+        adb.run_cmd("shell 'echo 1 > /sys/kernel/debug/tracing/tracing_on'")
+        adb.run_cmd("shell 'echo /sys/kernel/debug/tracing/tracing_on: && cat /sys/kernel/debug/tracing/tracing_on'")
+
+    # 4. don't restart system_server on Watchdog
+    # notice, extra change needed: http://gerrit.pt.miui.com/#/c/429775/
+    adb.run_cmd('shell setprop persist.sys.hangOnWatchdog 1 && echo hangOnWatchdog enabled')
+
+    # 6. persist logcat output and dmesg
+    # push a shell script onto the device and execute it in background to keep persist logs
+    # todo
+
+version = 0.12
+
+if __name__ == "__main__":
+    argv = sys.argv
+    argc = len(argv)
+
+    print "script version: " + str(version)
+
+    # show usage
+    if argc == 2 and argv[1].startswith("--help"):
+        print "usage:"
+        print("--device=[serial_no] : run preparation on manually picked device, if not specified will run on each connected device")
+        print("--signaltrace : enable signal trace")
+    else:
+        idx = 0
+        manual_picked_device = ""
+        _enable_signal_trace = ""
+        while idx < argc:
+            if argv[idx].startswith("--device="):
+                manual_picked_device = argv[idx].split("--device=")[1]
+                if len(manual_picked_device) == 0:
+                    raise Exception("empty serial is not allowed!")
+                else:
+                    print("manually picked device: " + manual_picked_device)
+            if argv[idx].startswith('--signaltrace'):
+                _enable_signal_trace = True
+            if argv[idx].startswith("--debug"):
+                __debug = True
+            idx += 1
+        os.system("adb wait-for-device >> /dev/null")
+        print("list of connected devices:")
+        devices = list_devices(True)
+        # check if the device user specified is online
+        if len(manual_picked_device) > 0:
+            if devices[manual_picked_device] != "device":
+                raise Exception(manual_picked_device + " is " + devices[manual_picked_device])
+            else:
+                mtbf_preparation(manual_picked_device, _enable_signal_trace)
+        else:
+            for key in devices:
+                # pick a online device
+                if devices[key] == 'device':
+                    mtbf_preparation(key, _enable_signal_trace)
+                else:
+                    print("\nWarning: device " + key + " is " + devices[key] + ", skip it")
+
+    c = raw_input("press any key to exit: ")
+    print("exit now...")
+    exit(0)
