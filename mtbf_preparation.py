@@ -7,7 +7,8 @@ import time as tt
 import urllib2
 
 __debug = False
-version = 0.13
+
+
 
 
 def list_devices(verbose=True):
@@ -286,10 +287,10 @@ def download_setcoredump_with_retry():
     retry_count = 2
     while retry_count > 0:
         retry_count -= 1
-        open_share_file_url = "https://drive.google.com/uc?authuser=0&id=1TQBCge48rCaQW-APCT_mV7T3o54NCSL-&export=download"
+        open_share_file_url = "https://raw.githubusercontent.com/wwm0609/mtbf_test/master/setcoredump"
         if download_setcoredump(open_share_file_url):
             return
-        open_share_file_url = "https://raw.githubusercontent.com/wwm0609/mtbf_test/master/setcoredump"
+        open_share_file_url = "https://drive.google.com/uc?authuser=0&id=1TQBCge48rCaQW-APCT_mV7T3o54NCSL-&export=download"
         if download_setcoredump(open_share_file_url):
             return
     print(
@@ -326,12 +327,15 @@ def download_setcoredump(url):
 
 
 if __name__ == "__main__":
+
+    version = 0.13
+
     argv = sys.argv
     argc = len(argv)
-    global version
     print "script version: " + str(version)
 
     # check if there is a newer version
+    print("checking for new version...")
     version_uri = 'https://raw.githubusercontent.com/wwm0609/mtbf_test/master/version.txt'
     new_script_uri = 'https://raw.githubusercontent.com/wwm0609/mtbf_test/master/mtbf_preparation.py'
     new_version_txt = "./new_mtbf_preparation_version.txt"
@@ -345,8 +349,11 @@ if __name__ == "__main__":
             if float(new_version) > version and download_file(new_script_uri, new_version_script, new_version_hash):
                 os.system("python " + os.path.abspath(new_version_script))
                 current_script_path = (__file__)
+                print("upgrade self")
                 os.rename(new_version_script, current_script_path)
                 os._exit(0)
+            else:
+                print("new_version:" + new_version + " skipped")
         except Exception as e:
             print("failed to parse " + new_version_txt, e)
 
