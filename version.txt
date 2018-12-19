@@ -1,2 +1,2 @@
-version=0.17
-md5=7a07192e8e38d3656d44516f32d782e3 /home/pip/PycharmProjects/mtbf_test/mtbf_preparation.py
+version=0.18
+md5=d17cbe4d12b84483053cac185da5bc76
