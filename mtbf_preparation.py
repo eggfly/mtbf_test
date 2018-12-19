@@ -149,7 +149,7 @@ def md5_matches(file, expect_md5):
     if not os.path.isfile(file):
         return False
     md5 = MD5(file)
-    matched = md5 == expect_md5
+    matched = (md5 == expect_md5)
     if not matched:
         print("Warning: md5 of " + file + " is " + md5 + " which does not match expected value: " + expect_md5)
     return matched
