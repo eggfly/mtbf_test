@@ -15,10 +15,8 @@ current_path=`pwd`
 echo 'working dir='$current_path
 version_file=$current_path/version.txt
 mtbf_script_file=$current_path/mtbf_preparation.py
-lines=`cat $version_file`
-lines=($lines)
-previous_version_number=${lines[0]}
-previous_md5_checksum=${lines[1]}
+previous_version_number=`cat $version_file | grep version`
+previous_md5_checksum=`cat $version_file | grep md5`
 
 echo "previous version:"
 echo $previous_version_number
@@ -35,7 +33,7 @@ from_str='__script_version = '$previous_version_str
 to_str='__script_version = '$new_version
 # actually replace the line
 echo $mtbf_script_file
-sed -i "_bak" "s/$from_str/$to_str/g" ./mtbf_preparation.py
+sed -i"_bak" "s/$from_str/$to_str/g" ./mtbf_preparation.py
 echo "bump version from $previous_version_str to $new_version"
 # re-add it to stage
 git add ./mtbf_preparation.py
@@ -56,6 +54,8 @@ echo $md5
 echo $new_version > ./version.txt
 echo $md5 >> ./version.txt
 git add ./version.txt
+
+git add ./release.sh
 
 git commit -m "bump version to $new_version"
 git push origin master
