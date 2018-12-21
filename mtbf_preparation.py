@@ -241,6 +241,9 @@ def mtbf_preparation(selected_device, enable_signal_trace):
         print("mtbftest already enabled")
     else:
         adb.run_cmd("shell setprop ro.miui.mtbftest 1 && echo 'mtbftest enabled'")
+    adb.run_cmd("shell setprop persist.sys.watchdog_enhanced false")
+    print("persist.sys.watchdog_enhanced:")
+    adb.run_cmd("shell getprop persist.sys.watchdog_enhanced")
 
     # 2. dump core file on native crash
     print("copy ./setcoredump onto /data/local/tmp/setcoredump")
@@ -255,7 +258,7 @@ def mtbf_preparation(selected_device, enable_signal_trace):
     if len(sf_pid_str) == 0:
         raise Exception("surfaceflinger not found?")
     adb.run_cmd(
-        'shell /data/local/tmp/setcoredump -f -p ' + ss_pid_str + " && echo 'core dump on surfaceflinger enabled'")
+        'shell /data/local/tmp/setcoredump -f -p ' + ss_pid_str + " && echo 'core dump on system_server enabled'")
     adb.run_cmd('shell /data/local/tmp/setcoredump -p ' + sf_pid_str + " && echo 'core dump on surfaceflinger enabled'")
 
     # 3. increase logd buffer size and adjust default limit level
