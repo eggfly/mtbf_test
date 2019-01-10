@@ -375,6 +375,7 @@ def check_upgrade_and_execute_new_version():
                         continue
                     cmd = cmd + " " + param.strip()
 
+                print(cmd)
                 os.system(cmd)
                 current_script_path = (__file__)
                 print("upgrade self")
