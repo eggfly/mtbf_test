@@ -409,7 +409,7 @@ if __name__ == "__main__":
     # WARNING:
     # DO NOT RENAME THIS VARIABLE OR MANUALLY
     # UPDATE THE VALUE, IT SHALL BE UPDATED BY release.sh AUTOMATICALLY
-    __script_version = 0.32
+    __script_version = 0.33
 
     argv = sys.argv
     argc = len(argv)
