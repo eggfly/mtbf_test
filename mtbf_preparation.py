@@ -389,9 +389,9 @@ def check_upgrade_and_execute_new_version():
             print("upgrade self")
             os.remove(current_script_path)
             os.rename(new_version_script, current_script_path)
-            os._exit(0)
         except Exception as e:
-            print("faild to update scirpt", e)      
+            print("wtf: faild to update scirpt", e)
+        os._exit(0)    
 
 if __name__ == "__main__":
     # WARNING:
