@@ -177,23 +177,9 @@ def mtbf_preparation(selected_device, enable_signal_trace):
     adb = Adb(selected_device)
     if os.path.isfile("./replace_native_libs.config"):
         adb.run_cmd('root')
-        text = adb.run_cmd('disable-verity', True).strip()
-        text = adb.run_cmd('disable-verity', True).strip()
-        verity_disabled = False
-        if len(text) > 0 and (
-                    text.startswith("Verity already disabled on /system") or text.startswith(
-                    "verity is already disabled")):
-            verity_disabled = True
-        if not verity_disabled:
-            print("disabled dm-verity, rebooting now")
-            adb.run_cmd('reboot')
-            adb.run_cmd('wait-for-device')
-        adb.run_cmd('root')
-        adb.run_cmd('disable-verity')
-        adb.run_cmd('remount')
-        print('replace native libs: ')
         config_file = './replace_native_libs.config'
         replace_any = False
+        configs = {}
         with open(config_file, 'r') as fin:
             lines = fin.readlines()
             lineNo = 0
@@ -206,16 +192,36 @@ def mtbf_preparation(selected_device, enable_signal_trace):
                 if len(mapping) != 2:
                     raise Exception(
                         "Illegal mapping at line " + str(lineNo) + " in " + os.path.abspath(config_file) + " : " + line)
-
-                print("push " + mapping[0] + " to " + mapping[1])
-                adb.run_cmd('push ' + mapping[0] + ' ' + mapping[1])
+                configs[mapping[0]]= mapping[1]
                 replace_any = True
         if replace_any:
+            text = adb.run_cmd('disable-verity', True).strip()
+            print(text)
+            text = adb.run_cmd('disable-verity', True).strip()
+            print(text)
             print('reboot device to take effect...')
             adb.run_cmd('reboot')
-            print('wait for device...')
             adb.run_cmd('wait-for-device')
-            try_count = 100
+            sleep_ignore_error(2);
+            adb.run_cmd('root')
+            adb.run_cmd('remount')
+
+            print("")
+            print('replacing native libs: ')
+            for key in configs:
+                print("push " + key + " to " + configs[key])
+                adb.run_cmd('push ' + key + ' ' + configs[key])
+
+            print('reboot device to take effect...')
+            adb.run_cmd("reboot")
+            adb.run_cmd('wait-for-device')
+            sleep_ignore_error(2);
+            adb.run_cmd('root')
+            adb.run_cmd('remount')
+            print("")
+
+            try_count = 120
+            str_count = str(try_count)
             while try_count > 0:
                 out = adb.run_cmd("shell getprop sys.boot_completed", True).strip()
                 if out == '1':
@@ -225,7 +231,7 @@ def mtbf_preparation(selected_device, enable_signal_trace):
                 sleep_ignore_error(1)
             if try_count == 0:
                 # timeout
-                raise Exception("device didn't finish booting in " + str(try_count) + " sec, please check its state!")
+                raise Exception("device didn't finish booting in " + str_count + " sec, please check phone state!")
 
     adb.run_cmd("root && echo running adb as root")
 
