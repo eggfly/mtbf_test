@@ -356,10 +356,14 @@ def check_upgrade_and_execute_new_version():
     new_version_script = "./mtbf_preparation_latest.py"
 
     # damn you python and windows: remove existing files firstly
-    os.remove(new_version_txt)
-    os.remove(new_version_script)
-    os.remove("./connect_mioffce_5g_wifi.py")
-    os.remove("./WifiConfigStore.xml")
+    if os.path.isfile(new_version_txt):
+        os.remove(new_version_txt)
+    if os.path.isfile(new_version_script):
+        os.remove(new_version_script)
+    if os.path.isfile("./connect_mioffce_5g_wifi.py):
+        os.remove("./connect_mioffce_5g_wifi.py")
+    if os.path.isfile("./WifiConfigStore.xml"):
+        os.remove("./WifiConfigStore.xml")
     
     download_file(version_uri, new_version_txt)
     download_file("https://raw.githubusercontent.com/wwm0609/mtbf_test/master/connect_mioffce_5g_wifi.py", "./connect_mioffce_5g_wifi.py")
