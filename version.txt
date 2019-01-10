@@ -1,2 +1,2 @@
-version=0.26
-md5=1600c4ad03c6b17d9afdd49434e3d302
+version=0.27
+md5=c1ff6e587cefb240c876a5150b9e2bd1
