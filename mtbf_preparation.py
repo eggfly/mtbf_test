@@ -205,6 +205,7 @@ def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity="", wif
 
     if os.path.isfile("replace_native_libs.config"):
         adb.run_cmd('root')
+        adb.run_cmd('wait-for-device')
         config_file = 'replace_native_libs.config'
         replace_any = False
         configs = {}
@@ -232,6 +233,7 @@ def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity="", wif
             adb.run_cmd('wait-for-device')
             sleep_ignore_error(2);
             adb.run_cmd('root')
+            adb.run_cmd('wait-for-device')
             adb.run_cmd('remount')
 
             print("")
@@ -245,11 +247,13 @@ def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity="", wif
             adb.run_cmd('wait-for-device')
             sleep_ignore_error(2);
             adb.run_cmd('root')
+            adb.run_cmd('wait-for-device')
             adb.run_cmd('remount')
             print("")
             wait_for_boot(adb)
 
     adb.run_cmd("root && echo running adb as root")
+    adb.run_cmd('wait-for-device')
 
     # first check if setcoredump file exists, if not download it
     download_setcoredump_with_retry()
