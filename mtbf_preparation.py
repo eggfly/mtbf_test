@@ -367,7 +367,7 @@ def check_upgrade_and_execute_new_version():
             print("failed to parse " + new_version_txt, e)
     if float(new_version) > __script_version and download_file(new_script_uri, new_version_script,
                                                             new_version_hash):
-        print("\nnew version available, executing it now\n")
+        print("\nnew version " + new_version + " available, executing it now\n")
         cmd = "python " + new_version_script + " --no-upgrade"
         index = 0
         for param in sys.argv:
@@ -384,9 +384,7 @@ def check_upgrade_and_execute_new_version():
             os.rename(new_version_script, current_script_path)
             os._exit(0)
         except Exception as e:
-            print("faild to update scirpt", e)
-    else:
-        print("remote version:" + new_version + " skipped")        
+            print("faild to update scirpt", e)      
 
 if __name__ == "__main__":
     # WARNING:
