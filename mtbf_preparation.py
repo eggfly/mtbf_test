@@ -196,16 +196,16 @@ def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity="", wif
     adb = Adb(selected_device)
 
     if len(wifi_identity) > 0 and len(wifi_password):
-        os.system("python ./connect_mioffce_5g_wifi.py " + wifi_identity + " " + wifi_password + " " + selected_device)
+        os.system("python connect_mioffce_5g_wifi.py " + wifi_identity + " " + wifi_password + " " + selected_device)
         wait_for_boot(adb)
     else:
         print("wifi-account:" + wifi_identity)
         print("wifi-password:" + wifi_password)
         print("skip wifi setup")
 
-    if os.path.isfile("./replace_native_libs.config"):
+    if os.path.isfile("replace_native_libs.config"):
         adb.run_cmd('root')
-        config_file = './replace_native_libs.config'
+        config_file = 'replace_native_libs.config'
         replace_any = False
         configs = {}
         with open(config_file, 'r') as fin:
@@ -365,10 +365,14 @@ def check_upgrade_and_execute_new_version():
             new_version_hash = fin.readline().strip().split("md5=")[1]
             if float(new_version) > __script_version and download_file(new_script_uri, new_version_script,
                                                                        new_version_hash):
-                print("new version available, executing it now")
+                print("\nnew version available, executing it now\n")
 
-                cmd = "python " + os.path.abspath(new_version_script) + " --no-upgrade"
+                cmd = "python " + new_version_script + " --no-upgrade"
+                index = 0
                 for param in sys.argv:
+                    index = index + 1
+                    if index == 1:
+                        continue
                     cmd = cmd + " " + param.strip()
 
                 os.system(cmd)
@@ -386,7 +390,7 @@ if __name__ == "__main__":
     # WARNING:
     # DO NOT RENAME THIS VARIABLE OR MANUALLY
     # UPDATE THE VALUE, IT SHALL BE UPDATED BY release.sh AUTOMATICALLY
-    __script_version = 0.22
+    __script_version = 0.21
 
     argv = sys.argv
     argc = len(argv)
