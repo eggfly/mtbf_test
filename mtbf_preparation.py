@@ -362,7 +362,12 @@ def check_upgrade_and_execute_new_version():
             if float(new_version) > __script_version and download_file(new_script_uri, new_version_script,
                                                                        new_version_hash):
                 print("new version available, executing it now")
-                os.system("python " + os.path.abspath(new_version_script) + " --no-upgrade")
+
+                cmd = "python " + os.path.abspath(new_version_script) + " --no-upgrade"
+                for param in sys.argv:
+                    cmd = cmd + " " + param.strip()
+
+                os.system(cmd)
                 current_script_path = (__file__)
                 print("upgrade self")
                 os.rename(new_version_script, current_script_path)
@@ -398,7 +403,9 @@ if __name__ == "__main__":
             "--device=[serial_no] : 设备序列号，可选")
         print("--wifi_account=your_email_without_suffix: wifi账号， 可选项目， 如果设置，则也需同时提供wifi密码")
         print("--wifi_password=your_email_password: wifi密码， 账号和密码都提供后便可自动连接Mioffice-5G")
-        print("--signaltrace : enable signal trace")
+        print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+        print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+        print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
     else:
         idx = 0
         manual_picked_device = ""
@@ -438,6 +445,9 @@ if __name__ == "__main__":
                 else:
                     print("\nWarning: device " + key + " is " + devices[key] + ", skip it")
 
+    print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+    print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+    print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
     c = raw_input("press any key to exit: ")
     print("exit now...")
     exit(0)
