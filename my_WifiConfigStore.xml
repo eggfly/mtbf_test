@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<WifiConfigStoreData>
+<int name="Version" value="1" />
+<NetworkList>
+<Network>
+<WifiConfiguration>
+<string name="ConfigKey">&quot;MIOffice-5G&quot;-WPA_EAP</string>
+<string name="SSID">&quot;MIOffice-5G&quot;</string>
+<null name="BSSID" />
+<boolean name="ShareThisAp" value="false" />
+<null name="PreSharedKey" />
+<null name="WEPKeys" />
+<int name="WEPTxKeyIndex" value="0" />
+<boolean name="HiddenSSID" value="false" />
+<boolean name="RequirePMF" value="false" />
+<byte-array name="AllowedKeyMgmt" num="1">0c</byte-array>
+<byte-array name="AllowedProtocols" num="1">0b</byte-array>
+<byte-array name="AllowedAuthAlgos" num="1">01</byte-array>
+<byte-array name="AllowedGroupCiphers" num="1">2f</byte-array>
+<byte-array name="AllowedPairwiseCiphers" num="1">0e</byte-array>
+<boolean name="Shared" value="true" />
+<int name="Status" value="2" />
+<null name="FQDN" />
+<null name="ProviderFriendlyName" />
+<null name="LinkedNetworksList" />
+<null name="DefaultGwMacAddress" />
+<boolean name="ValidatedInternetAccess" value="true" />
+<boolean name="NoInternetAccessExpected" value="false" />
+<int name="UserApproved" value="0" />
+<boolean name="MeteredHint" value="false" />
+<int name="MeteredOverride" value="0" />
+<boolean name="UseExternalScores" value="false" />
+<int name="NumAssociation" value="4" />
+<int name="CreatorUid" value="1000" />
+<string name="CreatorName">android.uid.system:1000</string>
+<string name="CreationTime">time=01-01 00:44:50.969</string>
+<int name="LastUpdateUid" value="1000" />
+<string name="LastUpdateName">android.uid.system:1000</string>
+<int name="LastConnectUid" value="1000" />
+<boolean name="IsLegacyPasspointConfig" value="false" />
+<long-array name="RoamingConsortiumOIs" num="0" />
+<string name="RandomizedMacAddress">02:00:00:00:00:00</string>
+<null name="DppConnector" />
+<null name="DppNetAccessKey" />
+<int name="DppNetAccessKeyExpiry" value="-1" />
+<null name="DppCsign" />
+</WifiConfiguration>
+<NetworkStatus>
+<string name="SelectionStatus">NETWORK_SELECTION_ENABLED</string>
+<string name="DisableReason">NETWORK_SELECTION_ENABLE</string>
+<null name="ConnectChoice" />
+<long name="ConnectChoiceTimeStamp" value="-1" />
+<boolean name="HasEverConnected" value="true" />
+</NetworkStatus>
+<IpConfiguration>
+<string name="IpAssignment">DHCP</string>
+<string name="ProxySettings">NONE</string>
+</IpConfiguration>
+<WifiEnterpriseConfiguration>
+<string name="Identity">wangmingming1</string>
+<string name="AnonIdentity"></string>
+<string name="Password">painass0011@</string>
+<string name="ClientCert"></string>
+<string name="CaCert"></string>
+<string name="SubjectMatch"></string>
+<string name="Engine">0</string>
+<string name="EngineId"></string>
+<string name="PrivateKeyId"></string>
+<string name="AltSubjectMatch"></string>
+<string name="DomSuffixMatch"></string>
+<string name="CaPath"></string>
+<int name="EapMethod" value="0" />
+<int name="Phase2Method" value="0" />
+<string name="sim_num"></string>
+<string name="PLMN"></string>
+<string name="Realm"></string>
+<string name="SimNum"></string>
+</WifiEnterpriseConfiguration>
+</Network>
+</NetworkList>
+<PasspointConfigData>
+<long name="ProviderIndex" value="0" />
+</PasspointConfigData>
+</WifiConfigStoreData>

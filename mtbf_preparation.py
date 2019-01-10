@@ -167,7 +167,7 @@ def MD5(file):
     return md5_value.hexdigest()
 
 
-def mtbf_preparation(selected_device, enable_signal_trace):
+def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity, wifi_password):
     # dump kernel traces
     # trigger_sysrq = False
 
@@ -175,6 +175,11 @@ def mtbf_preparation(selected_device, enable_signal_trace):
 
     # 0. replace certain libs
     adb = Adb(selected_device)
+
+    if len(wifi_identity) > 0 and len(wifi_password):
+        os.system("python ./connect_mioffce_5g_wifi.py " + wifi_identity + " " + wifi_password + " " + selected_device)
+        adb.run_cmd('wait-for-device')
+
     if os.path.isfile("./replace_native_libs.config"):
         adb.run_cmd('root')
         config_file = './replace_native_libs.config'
