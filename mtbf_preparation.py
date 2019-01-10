@@ -363,32 +363,30 @@ def check_upgrade_and_execute_new_version():
             fin = open(new_version_txt, 'r')
             new_version = fin.readline().strip().split("version=")[1]
             new_version_hash = fin.readline().strip().split("md5=")[1]
-            else:
-                print("new_version:" + new_version + " skipped")
         except Exception as e:
             print("failed to parse " + new_version_txt, e)
     if float(new_version) > __script_version and download_file(new_script_uri, new_version_script,
                                                             new_version_hash):
-    print("\nnew version available, executing it now\n")
-    cmd = "python " + new_version_script + " --no-upgrade"
-    index = 0
-    for param in sys.argv:
-        index = index + 1
-        if index == 1:
-            continue
-        cmd = cmd + " " + param.strip()
-
-    print(cmd)
-    os.system(cmd)
-
-    try:
-        current_script_path = (__file__)
-        print("upgrade self")
-        os.remove(current_script_path)
-        os.rename(new_version_script, current_script_path)
-        os._exit(0)
-    except Exception as e:
-        print("faild to update scirpt", e)
+        print("\nnew version available, executing it now\n")
+        cmd = "python " + new_version_script + " --no-upgrade"
+        index = 0
+        for param in sys.argv:
+            index = index + 1
+            if index == 1:
+                continue
+            cmd = cmd + " " + param.strip()
+        print(cmd)
+        os.system(cmd)
+        try:
+            current_script_path = (__file__)
+            print("upgrade self")
+            os.remove(current_script_path)
+            os.rename(new_version_script, current_script_path)
+            os._exit(0)
+        except Exception as e:
+            print("faild to update scirpt", e)
+    else:
+        print("remote version:" + new_version + " skipped")        
 
 if __name__ == "__main__":
     # WARNING:
