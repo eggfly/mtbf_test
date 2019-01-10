@@ -167,7 +167,26 @@ def MD5(file):
     return md5_value.hexdigest()
 
 
-def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity, wifi_password):
+def wait_for_boot(adb):
+    try_count = 120
+    str_count = str(try_count)
+    print("wait for device to be fully online")
+    adb.run_cmd('wait-for-device')
+    while try_count > 0:
+        out = adb.run_cmd("shell getprop sys.boot_completed", True).strip()
+        if out == '1':
+            break
+        try_count -= 1
+        print("wait for device to be fully online")
+        sleep_ignore_error(1)
+    if try_count == 0:
+        # timeout
+        raise Exception("device didn't finish booting in " + str_count + " sec, please check phone state!")
+    else:
+        print("device is fully online now")
+
+
+def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity="", wifi_password=""):
     # dump kernel traces
     # trigger_sysrq = False
 
@@ -178,7 +197,7 @@ def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity, wifi_p
 
     if len(wifi_identity) > 0 and len(wifi_password):
         os.system("python ./connect_mioffce_5g_wifi.py " + wifi_identity + " " + wifi_password + " " + selected_device)
-        adb.run_cmd('wait-for-device')
+        wait_for_boot(adb)
 
     if os.path.isfile("./replace_native_libs.config"):
         adb.run_cmd('root')
@@ -224,19 +243,7 @@ def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity, wifi_p
             adb.run_cmd('root')
             adb.run_cmd('remount')
             print("")
-
-            try_count = 120
-            str_count = str(try_count)
-            while try_count > 0:
-                out = adb.run_cmd("shell getprop sys.boot_completed", True).strip()
-                if out == '1':
-                    break
-                try_count -= 1
-                print("wait for device to be fully online")
-                sleep_ignore_error(1)
-            if try_count == 0:
-                # timeout
-                raise Exception("device didn't finish booting in " + str_count + " sec, please check phone state!")
+            wait_for_boot(adb)
 
     adb.run_cmd("root && echo running adb as root")
 
@@ -344,6 +351,9 @@ def check_upgrade_and_execute_new_version():
     new_version_txt = "./new_mtbf_preparation_version.txt"
     new_version_script = "./mtbf_preparation_latest.py"
     download_file(version_uri, new_version_txt)
+    download_file("https://raw.githubusercontent.com/wwm0609/mtbf_test/master/connect_mioffce_5g_wifi.py", "./connect_mioffce_5g_wifi.py")
+    download_file("https://raw.githubusercontent.com/wwm0609/mtbf_test/master/WifiConfigStore.xml", "./WifiConfigStore.xml")
+
     if os.path.isfile("./new_mtbf_preparation_version.txt"):
         try:
             fin = open(new_version_txt, 'r')
@@ -385,12 +395,16 @@ if __name__ == "__main__":
     if argc == 2 and argv[1].startswith("--help"):
         print("usage:")
         print(
-            "--device=[serial_no] : run preparation on manually picked device, if not specified will run on each connected device")
+            "--device=[serial_no] : 设备序列号，可选")
+        print("--wifi_account=your_email_without_suffix: wifi账号， 可选项目， 如果设置，则也需同时提供wifi密码")
+        print("--wifi_password=your_email_password: wifi密码， 账号和密码都提供后便可自动连接Mioffice-5G")
         print("--signaltrace : enable signal trace")
     else:
         idx = 0
         manual_picked_device = ""
         _enable_signal_trace = ""
+        wifi_account=""
+        wifi_password=""
         while idx < argc:
             if argv[idx].startswith("--device="):
                 manual_picked_device = argv[idx].split("--device=")[1]
@@ -402,6 +416,10 @@ if __name__ == "__main__":
                 _enable_signal_trace = True
             if argv[idx].startswith("--debug"):
                 __debug = True
+            if argv[idx].startswith("--wifi_account="):
+                wifi_account = argv[idx].split("--wifi_account=")[1]
+            if argv[idx].startswith("--wifi_password="):
+                wifi_password = argv[idx].split("--wifi_password=")[1]
             idx += 1
         os.system("adb wait-for-device >> /dev/null")
         print("list of connected devices:")
@@ -411,12 +429,12 @@ if __name__ == "__main__":
             if devices[manual_picked_device] != "device":
                 raise Exception(manual_picked_device + " is " + devices[manual_picked_device])
             else:
-                mtbf_preparation(manual_picked_device, _enable_signal_trace)
+                mtbf_preparation(manual_picked_device, _enable_signal_trace, wifi_account, wifi_password)
         else:
             for key in devices:
                 # pick a online device
                 if devices[key] == 'device':
-                    mtbf_preparation(key, _enable_signal_trace)
+                    mtbf_preparation(key, _enable_signal_trace, wifi_account, wifi_password)
                 else:
                     print("\nWarning: device " + key + " is " + devices[key] + ", skip it")
 
