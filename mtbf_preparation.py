@@ -198,6 +198,10 @@ def mtbf_preparation(selected_device, enable_signal_trace, wifi_identity="", wif
     if len(wifi_identity) > 0 and len(wifi_password):
         os.system("python ./connect_mioffce_5g_wifi.py " + wifi_identity + " " + wifi_password + " " + selected_device)
         wait_for_boot(adb)
+    else:
+        print("wifi-account:" + wifi_identity)
+        print("wifi-password:" + wifi_password)
+        print("skip wifi setup")
 
     if os.path.isfile("./replace_native_libs.config"):
         adb.run_cmd('root')
@@ -387,6 +391,8 @@ if __name__ == "__main__":
     argv = sys.argv
     argc = len(argv)
     print("script version: " + str(__script_version))
+    os.popen("adb start-server")
+    os.popen("adb wait-for-device")
 
     # check if there is a newer version
     no_upgrade = False
@@ -403,32 +409,34 @@ if __name__ == "__main__":
             "--device=[serial_no] : 设备序列号，可选")
         print("--wifi_account=your_email_without_suffix: wifi账号， 可选项目， 如果设置，则也需同时提供wifi密码")
         print("--wifi_password=your_email_password: wifi密码， 账号和密码都提供后便可自动连接Mioffice-5G")
-        print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
-        print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
-        print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+        print(u"注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+        print(u"注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+        print(u"注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
     else:
-        idx = 0
+        idx = 1
         manual_picked_device = ""
         _enable_signal_trace = ""
         wifi_account=""
         wifi_password=""
+        print("argv count: " + str(argc))
         while idx < argc:
-            if argv[idx].startswith("--device="):
+            print str(idx) + ":" + argv[idx]
+            param=str(argv[idx]).strip()
+            if param.startswith("--device="):
                 manual_picked_device = argv[idx].split("--device=")[1]
                 if len(manual_picked_device) == 0:
                     raise Exception("empty serial is not allowed!")
                 else:
                     print("manually picked device: " + manual_picked_device)
-            if argv[idx].startswith('--signaltrace'):
+            if param.startswith('--signaltrace'):
                 _enable_signal_trace = True
-            if argv[idx].startswith("--debug"):
+            if param.startswith("--debug"):
                 __debug = True
-            if argv[idx].startswith("--wifi_account="):
+            if '--wifi_account=' in param:
                 wifi_account = argv[idx].split("--wifi_account=")[1]
-            if argv[idx].startswith("--wifi_password="):
+            if param.startswith('--wifi_password='):
                 wifi_password = argv[idx].split("--wifi_password=")[1]
             idx += 1
-        os.system("adb wait-for-device >> /dev/null")
         print("list of connected devices:")
         devices = list_devices(True)
         # check if the device user specified is online
@@ -445,9 +453,9 @@ if __name__ == "__main__":
                 else:
                     print("\nWarning: device " + key + " is " + devices[key] + ", skip it")
 
-    print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
-    print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
-    print("注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+    print(u"注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+    print(u"注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
+    print(u"注意：请确保在执行此脚本后不要再重启手机，否则一些重要配置会失效")
     c = raw_input("press any key to exit: ")
     print("exit now...")
     exit(0)
